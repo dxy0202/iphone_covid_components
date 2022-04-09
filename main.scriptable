@@ -1,0 +1,348 @@
+// Update: 2022.01.11
+
+const newBG = true //设置新的背景
+
+const innerColor = Color.blue()
+const outerColor = Color.purple()
+// =================================
+
+
+
+// ======== Start ========
+
+const webview = new WebView();
+await webview.loadURL("https://i.snssdk.com/forum/ncov_data/?data_type=%5B2%2C4%2C8%5D");
+
+var getData = `
+  function runit() {
+    const ord = document.querySelector('*').innerText;
+const data = eval("("+ord+")");
+const nationwide = eval("("+data.ncov_nation_data+")").nationwide
+const Top10 = eval("("+data.ncov_nation_data+")").confirmedIncrProvinceTop10
+const jilin = eval("("+data.ncov_nation_data+")").provinces[2].cities
+const jilin_qushi = eval("("+data.ncov_nation_data+")").provinces[2].series
+const description = eval("("+data.ncov_nation_data+")").incrTips
+const jinan_quezhen = eval("("+data.ncov_nation_data+")").provinces[10].cities[7].confirmedIncr
+const jinan_wuzhengzhuang = eval("("+data.ncov_nation_data+")").provinces[10].cities[7].asymptomaticIncr
+const shanghai_quezhen = eval("("+data.ncov_nation_data+")").provinces[4].mainlandConfirmedIncr
+const shanghai_wuzhengzhuang = eval("("+data.ncov_nation_data+")").provinces[4].asymptomaticIncr
+const outputdata = {"Top10":Top10,"description":description,"nationwide":nationwide,"jinan_quezhen":jinan_quezhen,"jinan_wuzhengzhuang":jinan_wuzhengzhuang,"jilin":jilin,"shanghai_quezhen":shanghai_quezhen,"shanghai_wuzhengzhuang":shanghai_wuzhengzhuang,"jilin_qushi":jilin_qushi}
+    completion (outputdata);
+  }
+
+  runit();
+`
+
+let TodayIncr = await webview.evaluateJavaScript(getData, true);
+
+
+
+// ======== End ========
+
+const data = TodayIncr.nationwide
+
+
+const chartDrawing = new DrawContext()
+chartDrawing.size = new Size(642, 221)
+chartDrawing.opaque=false
+chartDrawing.respectScreenScale=true
+
+// ######
+fillRect(20, 110, 590, 2, 0, new Color("000000", 0.2))
+
+
+
+drawText(12, 5, 80, 80, "🦠", Color.white(), "a", 40, "center")
+
+
+var max;
+for(i = 0; i<30 ;i++)
+{
+    let	temp = TodayIncr.jilin_qushi[i].confirmedIncr + TodayIncr.jilin_qushi[i].asymptomaticIncr;
+    max = (temp > max || max == undefined ? temp : max)
+}
+
+const deltaY = 50/max
+for(i = 0; i<30 ;i++)
+{
+    let	temp = (TodayIncr.jilin_qushi[29-i].confirmedIncr + TodayIncr.jilin_qushi[29-i].asymptomaticIncr)*deltaY
+    log(TodayIncr.jilin_qushi[29-i].confirmedIncr + TodayIncr.jilin_qushi[29-i].asymptomaticIncr)
+    let width = 8,color = Color.green()
+    if (i==29)
+    {
+        color = new Color("cf4442",1)}
+
+    fillRect(40+i*13.5, 100-temp, width, temp, 4, color)
+}
+
+
+
+drawText(78, 15, 300, 60, "吉林省疫情信息", Color.white(), "a",24, "left")
+
+drawText(330, 30, 120, 60, "30日趋势图", Color.white(), "a",16, "left")
+
+
+
+
+
+
+// ######
+drawText(440, 18, 190, 60, data[0].date.slice(-2)+"日全国新增",new Color("ffffff",1), "a",22, "center")
+
+
+drawText(440, 40, 190, 60, (data[0].confirmedIncr).toString(), new Color("ffffff",1), "a",40, "center")
+drawText(440, 65, 190, 60, "+", new Color("ffffff",1), "a",40, "center")
+drawText(440, 98, 190, 60, (data[0].asymptomaticIncr).toString(), new Color("ffffff",1), "a",40, "center")
+
+
+
+var IncrMax;
+for(i = 0; i<(TodayIncr.jilin.length) ;i++)
+{
+    if(TodayIncr.jilin[i].asymptomaticIncr == undefined)
+    {TodayIncr.jilin[i].asymptomaticIncr = 0}
+    let	temp =
+        TodayIncr.jilin[i].confirmedIncr
+// log("每项值"+temp)
+    IncrMax = (temp > IncrMax || IncrMax == undefined ? temp : IncrMax)
+}
+const incrDelta = 42/IncrMax
+let gap = (425/(TodayIncr.jilin.length-3))
+// log ("长度:"+ TodayIncr.length+"，gap:"+ gap)
+
+for(i = 0; i<(TodayIncr.jilin.length) ;i++) {
+    if (TodayIncr.jilin[i].name != '境外输入') {
+        if (i < 5) {
+            let totalTemp =
+                (TodayIncr.jilin[i].confirmedIncr) * incrDelta
+            fillRect(37 + i * gap, 174 - totalTemp, 21, totalTemp, 0, innerColor)
+            let temp =
+                (TodayIncr.jilin[i].asymptomaticIncr) * incrDelta
+//     fillRect(37+i*gap, 174-temp, 21, temp, 0, outerColor)
+            let asymptomaticIncr = TodayIncr.jilin[i].asymptomaticIncr
+            if (asymptomaticIncr == 0) {
+                asymptomaticIncr = ""
+            }
+            drawText(25 + i * gap, 175, 45, 20, asymptomaticIncr.toString(), outerColor, "a", 14, "center")//无症状
+            let increasedNum = TodayIncr.jilin[i].confirmedIncr
+            if (increasedNum == 0) {
+                increasedNum = ""
+            }
+            drawText(25 + i * gap, 158 - totalTemp, 45, 20, increasedNum.toString(), innerColor, "a", 14, "center")//本土新增数
+            drawText(25 + i * gap, 195, 45, 20, TodayIncr.jilin[i].name, new Color("ffffff", 0.7), "a", 14, "center")//省份名称
+        }
+    }
+    if(i>5){
+        let totalTemp =
+            (TodayIncr.jilin[i].confirmedIncr) * incrDelta
+        fillRect(37 + (i-1) * gap, 174 - totalTemp, 21, totalTemp, 0, innerColor)
+        let temp =
+            (TodayIncr.jilin[i].asymptomaticIncr) * incrDelta
+//     fillRect(37+i*gap, 174-temp, 21, temp, 0, outerColor)
+        let asymptomaticIncr = TodayIncr.jilin[i].asymptomaticIncr
+        if (asymptomaticIncr == 0) {
+            asymptomaticIncr = ""
+        }
+        drawText(25 + (i-1) * gap, 175, 45, 20, asymptomaticIncr.toString(), outerColor, "a", 14, "center")//无症状
+        let increasedNum = TodayIncr.jilin[i].confirmedIncr
+        if (increasedNum == 0) {
+            increasedNum = ""
+        }
+        drawText(25 + (i-1) * gap, 158 - totalTemp, 45, 20, increasedNum.toString(), innerColor, "a", 14, "center")//本土新增数
+        drawText(25 + (i-1) * gap, 195, 45, 20, TodayIncr.jilin[i].name, new Color("ffffff", 0.7), "a", 14, "center")//省份名称
+    }
+}
+fillRect(
+// 460-((10-TodayIncr.length)*43)
+    560, 150, 60, 20, 0, innerColor)
+drawText(
+// 515-((10-TodayIncr.length)*43),
+    560,152, 60, 30, "确诊", new Color("000000",0.7), "a",14, "center")
+fillRect(
+// 460-((10-TodayIncr.length)*43)
+    560, 176, 60, 20, 0,   outerColor)
+drawText(
+// 515-((10-TodayIncr.length)*43)
+    560, 176, 60, 30, "无症状", new Color("000000",0.7), "a",14, "center")
+// drawText(485, 130, 190, 60, "吉林省", new Color("daa520",0.7), "a",17, "left")
+
+
+
+const widget = new ListWidget()
+widget.setPadding(0, 0, 0, 0)
+
+// ………………背景选择………………
+const files = FileManager.local()
+const path = files.joinPath(files.documentsDirectory(), "convid19")
+if (newBG && config.runsInApp)
+{
+    const img = await Photos.fromLibrary()
+    widget.backgroundImage = Addblur(img)
+    files.writeImage(path, img)
+}else{
+    if (config.runsInWidget) {
+        try {
+            widget.backgroundImage = Addblur(files.readImage(path))
+            log("读取图片成功")
+        } catch (e){
+            widget.backgroundColor = new Color("ffffff", 1)
+            log(e.message)
+        }
+
+    } else {
+        try {
+            widget.backgroundImage = Addblur( files.readImage(path))
+//     log("读取图片成功")
+        } catch (e){
+            const img = await Photos.fromLibrary()
+            widget.backgroundImage = Addblur(img)
+            files.writeImage(path, img)
+            log(e.message)
+        }
+    }
+}
+
+
+
+
+const scale = Device.screenScale()
+const width = getWidgetSize().w
+const height = getWidgetSize().h
+// log (width)
+const contentStack = widget.addStack()
+contentStack.layoutVertically()
+contentStack.size = new Size(width/scale, height/scale)
+const InfoStack = contentStack.addStack()
+InfoStack.size = new Size(width/scale, (221/296)*height/scale)
+InfoStack.addImage(chartDrawing.getImage())
+
+
+
+const newsStack = contentStack.addStack()//
+newsStack.backgroundColor = new Color("333333", 0.08)
+new Color("121a2a", 1)
+newsStack.layoutVertically()
+newsStack.size = new Size(width/scale, (75/296)*height/scale)
+newsStack.setPadding(5, 15, 5, 15)
+
+
+const news1 = newsStack.addText("济南:确诊"+TodayIncr.jinan_quezhen+" "+"无症状"+TodayIncr.jinan_wuzhengzhuang+"        "+"上海:确诊"+TodayIncr.shanghai_quezhen+" "+"无症状"+TodayIncr.shanghai_wuzhengzhuang)
+news1.font = Font.systemFont(12)
+news1.textColor = Color.white()
+
+
+
+
+// ##################
+
+Script.setWidget(widget)
+widget.presentMedium()
+Script.complete()
+
+
+function fillRect (x,y,width,height,cornerradio,color)
+{
+    let path = new Path()
+    let rect = new Rect(x, y, width, height)
+    path.addRoundedRect(rect, cornerradio, cornerradio)
+    chartDrawing.addPath(path)
+    chartDrawing.setFillColor(color)
+    chartDrawing.fillPath()
+}
+
+function drawText(x, y, width,height,text,color,font,fontsize,alignment)
+{
+    if (font=="a"){
+        chartDrawing.setFont(Font.boldRoundedSystemFont(fontsize))}
+    if (font=="default"){
+        chartDrawing.setFont(Font.lightMonospacedSystemFont(fontsize))}
+    if (font=="semibold"){
+        chartDrawing.setFont(Font.semiboldSystemFont(fontsize))}
+    chartDrawing.setTextColor(color)
+    if(alignment == "left")
+    {chartDrawing.setTextAlignedLeft()}
+    if(alignment == "center")
+    {chartDrawing.setTextAlignedCenter()}
+    if(alignment == "right")
+    {chartDrawing.setTextAlignedRight()}
+    chartDrawing.drawTextInRect(text, new Rect(x, y, width, height))
+}
+
+function Addblur (Img)
+{
+    const drawing = new DrawContext()
+    drawing.size = Img.size
+    const rect = new Rect(0, 0, drawing.size.width, drawing.size.height)
+    drawing.drawImageInRect(Img, rect)
+    drawing.setFillColor(new Color("000000", 0.02))
+    drawing.fillRect(rect)
+
+    let blurImg = drawing.getImage()
+    return blurImg
+}
+
+function getWidgetSize ()
+{
+    let deviceSize = (Device.screenSize().height*scale).toString()
+    let deviceInfo =
+        {  "2778": {
+                "models"  : ["12 Pro Max"],
+                "small"   : { "w": 510,   "h":  510 },
+                "medium"  : { "w": 1092,  "h": 510 },
+                "large"   : { "w": 1092,  "h": 1146}
+            },
+
+            "2532": {
+                "models"  : ["12", "12 Pro"],
+                "small"   : {"w": 474,  "h": 474 },
+                "medium"  : {"w": 1014, "h": 474 },
+                "large"   : {"w": 1014, "h": 1062 }
+            },
+
+            "2688": {
+                "models"  : ["Xs Max", "11 Pro Max"],
+                "small"   : {"w": 507,  "h": 507},
+                "medium"  : {"w": 1080, "h": 507},
+                "large"   : {"w": 1080, "h": 1137}
+            },
+
+            "1792": {
+                "models"  : ["11", "Xr"],
+                "small"   : {"w": 338, "h": 338},
+                "medium"  : {"w": 720, "h": 338},
+                "large"   : {"w": 720, "h": 758}
+            },
+
+            "2436": {
+                "models"  : ["X", "Xs", "11 Pro"],
+                "small"   : {"w": 465, "h": 465},
+                "medium"  : {"w": 987, "h": 465},
+                "large"   : {"w": 987, "h": 1035}
+            },
+
+            "2208": {
+                "models"  : ["6+", "6s+", "7+", "8+"],
+                "small"   : {"w": 471, "h": 471},
+                "medium"  : {"w": 1044, "h": 471},
+                "large"   : {"w": 1044, "h": 1071}
+            },
+
+            "1334": {
+                "models"  : ["6","6s","7","8"],
+                "small"   : {"w": 296, "h": 296},
+                "medium"  : {"w": 642, "h": 296},
+                "large"   : {"w": 642, "h": 648}
+            },
+
+            "1136": {
+                "models"  : ["5","5s","5c","SE"],
+                "small"   : {"w": 282, "h": 282},
+                "medium"  : {"w": 584, "h": 282},
+                "large"   : {"w": 584, "h": 622}
+            }
+        }
+
+    let widgetSize = deviceInfo[deviceSize].medium
+    return widgetSize
+//
+}
